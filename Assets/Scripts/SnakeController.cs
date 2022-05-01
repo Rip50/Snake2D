@@ -1,26 +1,26 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class SnakeController : MonoBehaviour
 {
-    [SerializeField] private GameObject Tail;
+    [FormerlySerializedAs("Tail")] [SerializeField] private GameObject TailPrefab;
     
     public float Speed = 0.5f;
     public float StepSize = 1.0f;
     public int Length = 2;
 
     private Rigidbody2D _rigidbody;
-    private TailSegment _tail;
+    private MovingPart _tail;
+    
     private Vector2 _movementDirection;
-    private Vector2 _desiredMovementDirection;
     private float _nextStepTime;
     private float _stepTime = 0;
 
     private void Start()
     {
-        _desiredMovementDirection = Vector2.up;
-        _movementDirection = _desiredMovementDirection;
+        _movementDirection =  Vector2.up;
         _nextStepTime = 1/Speed;
         _rigidbody = GetComponent<Rigidbody2D>();
         CreateTail();
@@ -29,24 +29,20 @@ public class SnakeController : MonoBehaviour
     private void CreateTail()
     {
         var currentPosition = transform.position;
-        TailSegment lastTailSegment = null;
+        currentPosition.z += 1;
+        var positionIncrement = _movementDirection * StepSize;
+        var x = - positionIncrement.x;
+        var y = - positionIncrement.y;
+        var childPosition = new Vector3(x, y, currentPosition.z);
+        
+        // First node
+        var obj = Instantiate(TailPrefab, currentPosition, transform.rotation);
+        _tail = obj.GetComponent<MovingPart>();
+        
+        // Rest nodes
         for (var i = 1; i < Length; i++)
         {
-            var positionIncrement = _movementDirection * StepSize * i;
-            var x = currentPosition.x - positionIncrement.x;
-            var y = currentPosition.y - positionIncrement.y;
-            var tailSegmentPosition = new Vector3(x, y, currentPosition.z);
-            var tailObject = Instantiate(Tail, tailSegmentPosition, Quaternion.identity);
-            var tail = tailObject.GetComponent<TailSegment>();
-            if (_tail == null)
-            {
-                _tail = tail;
-            }
-            else
-            {
-                lastTailSegment.NextTailSegment = tail;
-            }
-            lastTailSegment = tail;
+            _tail.CreateChildPart(TailPrefab, childPosition);
         }
     }
 
@@ -61,73 +57,32 @@ public class SnakeController : MonoBehaviour
             return;
         }
         _stepTime -= _nextStepTime;
-        
-        CreateTailSegment();
-        var length = CalculateSnakeLength();
-        if (length >= Length)
-        {
-            TrimTail();
-        }
 
-        MoveHead();
+        var newPosition = MoveHead();
+        _tail.Move(newPosition, transform.rotation, Speed);
     }
-
-    private int CalculateSnakeLength()
+    
+    private Vector2 MoveHead()
     {
-        var length = 1;
-        var currentSegment = _tail;
-        do
-        {
-            length++;
-            currentSegment = currentSegment.NextTailSegment;
-        } while (currentSegment.NextTailSegment != null);
-
-        return length;
-    }
-
-    private void TrimTail()
-    {
-        var lastSegment = _tail;
-        while (lastSegment.NextTailSegment != null)
-        {
-            lastSegment = lastSegment.NextTailSegment;
-        }
-        lastSegment.DestroySegment();
-    }
-
-    private void MoveHead()
-    {
-        var positionIncrement = _desiredMovementDirection * StepSize;
-        _rigidbody.MovePosition(new Vector2(transform.position.x, transform.position.y) + positionIncrement);
-        _movementDirection = _desiredMovementDirection;
+        var positionIncrement = _movementDirection * StepSize;
+        var newPosition = new Vector2(transform.position.x, transform.position.y) + positionIncrement;
+        _rigidbody.MovePosition(newPosition);
+        return newPosition;
     }
 
     private void UpdateMovementDirection()
     {
         var horDirection = Input.GetAxis("Horizontal");
         var vertDirection = Input.GetAxis("Vertical");
-        var direction = _movementDirection;
         if (Mathf.Abs(horDirection) > 0.1f)
         {
-            direction = horDirection > 0 ? Vector2.right : Vector2.left;
+            _movementDirection = horDirection > 0 ? Vector2.right : Vector2.left;
         }
         else if (Mathf.Abs(vertDirection) > 0.1f)
         {
-            direction = vertDirection > 0 ? Vector2.up : Vector2.down;
+            _movementDirection = vertDirection > 0 ? Vector2.up : Vector2.down;
         }
 
-        var product = Vector2.Dot(direction, _movementDirection);
-        if (product == 0)
-        {
-            _desiredMovementDirection = direction;
-        }
-    }
-
-    private void CreateTailSegment()
-    {
-        var tailObject = Instantiate(Tail, transform.position, Quaternion.identity);
-        var tail = tailObject.GetComponent<TailSegment>();
-        tail.NextTailSegment = _tail;
-        _tail = tail;
+        //var product = Vector2.Dot(direction, _movementDirection); //0 for 1/2Pi
     }
 }
