@@ -4,8 +4,8 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(Rigidbody2D))]
 public class SnakeController : MonoBehaviour
 {
-    [FormerlySerializedAs("Tail")] [SerializeField] private GameObject TailPrefab;
-    
+    [SerializeField] private GameObject TailPrefab;
+
     public float Speed = 0.5f;
     public float StepSize = 1.0f;
     public int Length = 2;
@@ -35,11 +35,11 @@ public class SnakeController : MonoBehaviour
         var childPosition = new Vector3(x, y, currentPosition.z);
         
         // First node
-        var obj = Instantiate(TailPrefab, currentPosition, transform.rotation);
+        var obj = Instantiate(TailPrefab, currentPosition + childPosition, transform.rotation);
         _tail = obj.GetComponent<MovingPart>();
         
         // Rest nodes
-        for (var i = 1; i < Length; i++)
+        for (var i = 2; i < Length; i++)
         {
             _tail.CreateChildPart(TailPrefab, childPosition);
         }
@@ -57,19 +57,18 @@ public class SnakeController : MonoBehaviour
         }
         _stepTime -= _nextStepTime;
 
-        var newPosition = MoveHead();
-        _tail.Move(newPosition, transform.rotation);
+        var position = transform.position;
+        MoveHead();
+        _tail.Move(position, transform.rotation);
     }
     
-    private Vector2 MoveHead()
+    private void MoveHead()
     {
         var positionIncrement = _movementDirection * StepSize;
         var newPosition = new Vector2(transform.position.x, transform.position.y) + positionIncrement;
       
         _rigidbody.MovePosition(newPosition);
         transform.eulerAngles = new Vector3(0, 0, Vector2.Angle(Vector2.up, _movementDirection));
-        
-        return newPosition;
     }
 
     private void UpdateMovementDirection()
@@ -91,7 +90,7 @@ public class SnakeController : MonoBehaviour
     public void IncrementLength()
     {
         var currentPosition = transform.position;
-        currentPosition.z += 1;
+        currentPosition.z = 0;
         var positionIncrement = _movementDirection * StepSize;
         var x = - positionIncrement.x;
         var y = - positionIncrement.y;

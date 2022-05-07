@@ -8,6 +8,8 @@ public class Item : MonoBehaviour
         if (snake == null) return;
         
         snake.IncrementLength();
+        snake.Speed += 0.1f;
+        
         Destroy(this.gameObject);
     }
 }
