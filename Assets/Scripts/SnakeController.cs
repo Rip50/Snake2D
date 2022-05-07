@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -59,14 +58,17 @@ public class SnakeController : MonoBehaviour
         _stepTime -= _nextStepTime;
 
         var newPosition = MoveHead();
-        _tail.Move(newPosition, transform.rotation, Speed);
+        _tail.Move(newPosition, transform.rotation);
     }
     
     private Vector2 MoveHead()
     {
         var positionIncrement = _movementDirection * StepSize;
         var newPosition = new Vector2(transform.position.x, transform.position.y) + positionIncrement;
+      
         _rigidbody.MovePosition(newPosition);
+        transform.eulerAngles = new Vector3(0, 0, Vector2.Angle(Vector2.up, _movementDirection));
+        
         return newPosition;
     }
 
@@ -74,15 +76,27 @@ public class SnakeController : MonoBehaviour
     {
         var horDirection = Input.GetAxis("Horizontal");
         var vertDirection = Input.GetAxis("Vertical");
-        if (Mathf.Abs(horDirection) > 0.1f)
+        
+        var currentMovementDirection = transform.rotation * Vector2.up;
+        if (Mathf.Abs(horDirection) > 0.1f && Mathf.Abs(currentMovementDirection.x) <  0.1)
         {
             _movementDirection = horDirection > 0 ? Vector2.right : Vector2.left;
         }
-        else if (Mathf.Abs(vertDirection) > 0.1f)
+        else if (Mathf.Abs(vertDirection) > 0.1f &&  Mathf.Abs(currentMovementDirection.y) < 0.1)
         {
             _movementDirection = vertDirection > 0 ? Vector2.up : Vector2.down;
         }
+    }
 
-        //var product = Vector2.Dot(direction, _movementDirection); //0 for 1/2Pi
+    public void IncrementLength()
+    {
+        var currentPosition = transform.position;
+        currentPosition.z += 1;
+        var positionIncrement = _movementDirection * StepSize;
+        var x = - positionIncrement.x;
+        var y = - positionIncrement.y;
+        var childPosition = new Vector3(x, y, currentPosition.z);
+        
+        _tail.CreateChildPart(TailPrefab, childPosition);
     }
 }

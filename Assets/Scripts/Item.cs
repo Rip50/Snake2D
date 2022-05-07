@@ -2,13 +2,12 @@ using UnityEngine;
 
 public class Item : MonoBehaviour
 {
-    private void OnCollisionEnter2D(Collision2D col)
+    private void OnTriggerEnter2D(Collider2D col)
     {
-        var snake = col.gameObject.GetComponent<SnakeController>();
-        if (snake != null)
-        {
-            snake.Length++;
-        }
-        Destroy(gameObject);
+        var snake = col.GetComponent<SnakeController>();
+        if (snake == null) return;
+        
+        snake.IncrementLength();
+        Destroy(this.gameObject);
     }
 }
