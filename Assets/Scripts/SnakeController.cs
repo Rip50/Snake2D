@@ -9,7 +9,8 @@ public class SnakeController : MonoBehaviour
     public float Speed = 0.5f;
     public float StepSize = 1.0f;
     public int Length = 2;
-
+    
+    private int _tailLength = 0;
     private Rigidbody2D _rigidbody;
     private MovingPart _tail;
     
@@ -20,29 +21,14 @@ public class SnakeController : MonoBehaviour
     private void Start()
     {
         _movementDirection =  Vector2.up;
-        _nextStepTime = 1/Speed;
+        BounceTime();
         _rigidbody = GetComponent<Rigidbody2D>();
-        CreateTail();
     }
 
-    private void CreateTail()
+    private void BounceTime()
     {
-        var currentPosition = transform.position;
-        currentPosition.z += 1;
-        var positionIncrement = _movementDirection * StepSize;
-        var x = - positionIncrement.x;
-        var y = - positionIncrement.y;
-        var childPosition = new Vector3(x, y, currentPosition.z);
-        
-        // First node
-        var obj = Instantiate(TailPrefab, currentPosition + childPosition, transform.rotation);
-        _tail = obj.GetComponent<MovingPart>();
-        
-        // Rest nodes
-        for (var i = 2; i < Length; i++)
-        {
-            _tail.CreateChildPart(TailPrefab, childPosition);
-        }
+        _stepTime -= _nextStepTime;
+        _nextStepTime = 1/Speed;
     }
 
     // Update is called once per frame
@@ -55,20 +41,26 @@ public class SnakeController : MonoBehaviour
         {
             return;
         }
-        _stepTime -= _nextStepTime;
-
-        var position = transform.position;
-        MoveHead();
-        _tail.Move(position, transform.rotation);
+        MoveSnake();
+        BounceTime();
     }
     
-    private void MoveHead()
+    private void MoveSnake()
     {
+        var position = transform.position;
         var positionIncrement = _movementDirection * StepSize;
-        var newPosition = new Vector2(transform.position.x, transform.position.y) + positionIncrement;
+        var newPosition = new Vector2(position.x, position.y) + positionIncrement;
       
-        _rigidbody.MovePosition(newPosition);
+        _rigidbody.transform.position = newPosition; 
         transform.eulerAngles = new Vector3(0, 0, Vector2.Angle(Vector2.up, _movementDirection));
+        if (Length > _tailLength + 1)
+        {
+            IncrementLength(position);
+        }
+        else
+        {
+            _tail.Move(position, transform.rotation);
+        }
     }
 
     private void UpdateMovementDirection()
@@ -87,15 +79,12 @@ public class SnakeController : MonoBehaviour
         }
     }
 
-    public void IncrementLength()
+    private void IncrementLength(Vector3 position)
     {
-        var currentPosition = transform.position;
-        currentPosition.z = 0;
-        var positionIncrement = _movementDirection * StepSize;
-        var x = - positionIncrement.x;
-        var y = - positionIncrement.y;
-        var childPosition = new Vector3(x, y, currentPosition.z);
-        
-        _tail.CreateChildPart(TailPrefab, childPosition);
+        var obj = Instantiate(TailPrefab, position, Quaternion.identity);
+        var newSegment = obj.GetComponent<MovingPart>();
+        newSegment._child = _tail;
+        _tail = newSegment;
+        _tailLength++;
     }
 }

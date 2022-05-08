@@ -6,8 +6,8 @@ public class Item : MonoBehaviour
     {
         var snake = col.GetComponent<SnakeController>();
         if (snake == null) return;
-        
-        snake.IncrementLength();
+
+        snake.Length++;
         snake.Speed += 0.1f;
         
         Destroy(this.gameObject);
